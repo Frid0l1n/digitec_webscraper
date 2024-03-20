@@ -1,6 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
+import datetime
 import time
+import pandas as pd
+import os
 
 # Initialize list of URLs
 urls = []
@@ -9,6 +12,21 @@ with open("urls.txt", "r") as f:
     for line in f:
         urls.append(line.strip())
 
+if os.path.isfile("table.csv"):
+    df = pd.read_csv("table.csv")
+    print(df)
+else:
+    df = {
+        "Time": [],
+        "Product": [],
+        "Price": [],
+    }
+
+    df = pd.DataFrame(df)
+    df.to_csv("table.csv", index=False)
+    print(df)
+
+time_now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 # Continuously fetch prices for all URLs
 while True:
@@ -38,13 +56,19 @@ while True:
                     break
 
             if target_span:
-                target_span = target_span.text
-                print(
-                    "Product: ",
-                    product_description,
-                    "Price: ",
-                    target_span,
-                )
+                target_span = target_span.text.strip()
+                print("Product:", product_description, "Price:", target_span)
+
+                new_data = {
+                    "Time": [time_now],
+                    "Product": [product_description],
+                    "Price": [target_span],
+                }
+
+                new_df = pd.DataFrame(new_data)
+                df = pd.concat([df, new_df], ignore_index=True)
+                df.to_csv("table.csv", index=False)
+
             else:
                 print("No price found for", url)
 
