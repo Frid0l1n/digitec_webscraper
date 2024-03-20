@@ -7,7 +7,6 @@ Digitec Webscraper is a simple webscraper with the use case to scrape digitec fo
 - [Installation process](#installation-process)
 - [Required packages](#required-packages)
 - [Use it on your own](#use-it-on-your-own)
-- [Found a bug?](#found-a-bug)
 - [Known Issues](#known-issues)
 
 ### Installation process
@@ -20,10 +19,11 @@ Digitec Webscraper is a simple webscraper with the use case to scrape digitec fo
 ### Required packages
 
 Required packages are:
-'''
+
+```python
 requests
 bs4
-'''
+```
 
 ### Use it on your own
 

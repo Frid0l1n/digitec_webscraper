@@ -5,12 +5,10 @@ import time
 # Initialize list of URLs
 urls = []
 
-while True:
-    link = input("Enter link (or type 'exit' to quit): ")
-    if link.lower() == "exit":
-        break
+with open("urls.txt", "r") as f:
+    for line in f:
+        urls.append(line.strip())
 
-    urls.append(link)
 
 # Continuously fetch prices for all URLs
 while True:
@@ -53,4 +51,4 @@ while True:
         except requests.exceptions.RequestException as e:
             print("Error fetcghing data for:", url, ":", e)
 
-    time.sleep(60)
+    time.sleep(60 * 10)
