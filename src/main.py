@@ -33,19 +33,18 @@ with open("urls.json", "r") as f:
 
 if os.path.isfile("table.csv"):
     df = pd.read_csv("table.csv")
-    print(df)
 else:
     df = {
         "Time": [],
         "Product": [],
         "Price": [],
     }
-
     df = pd.DataFrame(df)
+    df.astype({"Time": "string", "Product": "string", "Price": "int"})
     df.to_csv("table.csv", index=False)
 
 
-time_now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+time_now = datetime.datetime.now()
 
 
 def price_change():
@@ -53,12 +52,10 @@ def price_change():
     # check if price is in table
     x = df.loc[
         (df["Product"] == product_description) & (df["Price"] == target_span),
-        "Time",
+        "Price",
     ]
 
     price_compare = x.iloc[-2:]
-
-    print(price_compare)
 
 
 # Continuously fetch prices for all URLs
@@ -96,6 +93,8 @@ while True:
                     "Product": [product_description],
                     "Price": [target_span],
                 }
+
+                print(type(new_data["Price"]))
 
                 new_df = pd.DataFrame(new_data)
                 df = pd.concat([df, new_df], ignore_index=True)
