@@ -4,13 +4,32 @@ import datetime
 import time
 import pandas as pd
 import os
+import json
 
 # Initialize list of URLs
+
 urls = []
 
-with open("urls.txt", "r") as f:
-    for line in f:
-        urls.append(line.strip())
+while True:
+    link = input("Enter link (or type 'exit' to quit): ")
+
+    if link.lower() == "exit":
+        break
+
+    urls.append(link)
+
+with open("urls.json", "w") as f:
+    json.dump({"urls": urls}, f, indent=4)
+
+print("Links added to the JSON file.")
+
+with open("urls.json", "r") as f:
+    data = json.load(f)
+
+    if "urls" in data:
+        urls = data["urls"]
+    else:
+        print("No URLs found in the JSON file.")
 
 if os.path.isfile("table.csv"):
     df = pd.read_csv("table.csv")
@@ -24,9 +43,23 @@ else:
 
     df = pd.DataFrame(df)
     df.to_csv("table.csv", index=False)
-    print(df)
+
 
 time_now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def price_change():
+
+    # check if price is in table
+    x = df.loc[
+        (df["Product"] == product_description) & (df["Price"] == target_span),
+        "Time",
+    ]
+
+    price_compare = x.iloc[-2:]
+
+    print(price_compare)
+
 
 # Continuously fetch prices for all URLs
 while True:
@@ -40,7 +73,6 @@ while True:
             spans = soup.find_all("span")
             titles = soup.find_all("h1")
             strong = soup.find_all("strong")
-            span = soup.find_all("span")
             # find product type
             if titles:
                 product_description = titles[0].text
@@ -69,10 +101,12 @@ while True:
                 df = pd.concat([df, new_df], ignore_index=True)
                 df.to_csv("table.csv", index=False)
 
+                price_change()
+
             else:
                 print("No price found for", url)
 
         except requests.exceptions.RequestException as e:
             print("Error fetcghing data for:", url, ":", e)
 
-    time.sleep(60 * 10)
+    time.sleep(20)
