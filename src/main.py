@@ -2,10 +2,10 @@ import requests
 from bs4 import BeautifulSoup
 import datetime
 import time
-import pandas as pd
 import os
 import json
 import validators
+import csv
 
 # Initialize list of URLs
 urls = []
@@ -23,9 +23,6 @@ while True:
     else:
         print("Invalid URL. Please try again.")
 
-with open("urls.json", "w") as f:
-    json.dump({"urls": urls}, f)
-
 # print("Links added to the JSON file.")
 
 # TODO auto create json file
@@ -33,26 +30,32 @@ with open("urls.json", "w") as f:
 # Read JSON data
 with open("urls.json", "r") as f:
     data = json.load(f)
-    if "urls" in data:
-        urls = data["urls"]
+    if data["urls"]:
+        urls.extend(data["urls"])
     else:
         print("No URLs found in the JSON file.")
 
+
+with open("urls.json", "w") as f:
+    json.dump({"urls": urls}, f, indent=2)
+
+data = {
+    "ID": [],
+    "Time": [],
+    "Product": [],
+    "Price": [],
+    "Change": [],
+}
+
 if os.path.isfile("table.csv"):
-    df = pd.read_csv("table.csv")
-else:
-    df = {
-        "ID": [],
-        "Time": [],
-        "Product": [],
-        "Price": [],
-        "Change": [],
-    }
-
-    df = pd.DataFrame(df)
-    df.astype({"Time": "string", "Product": "string", "Price": "int"})
-    df.to_csv("table.csv", index=False)
-
+    reader = csv.reader(open("table.csv"))
+    next(reader, None)
+    for row in reader:
+        data["ID"].append(row[0])
+        data["Time"].append(row[1])
+        data["Product"].append(row[2])
+        data["Price"].append(row[3])
+        data["Change"].append(row[4])
 
 # Continuously fetch prices for all URLs
 while True:
@@ -64,7 +67,12 @@ while True:
             # time
             time_now = datetime.datetime.now()
 
-            response = requests.get(url)
+            response = requests.get(
+                url,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+                },
+            )
             response.raise_for_status()
             soup = BeautifulSoup(response.content, "html.parser")
 
@@ -87,35 +95,42 @@ while True:
 
             if target_span:
                 # TODO: Fix isnumeric
-                target_span = int("".join(filter(str.isdigit, target_span.text)))
-                # print("Product:", product_description, "Price:", target_span)
+                target_span = int("".join(filter(str.isnumeric, target_span.text)))
+                old_price = (
+                    float(data["Price"][::-1][data["ID"][::-1].index(id)])
+                    if id in data["ID"]
+                    else float(target_span)
+                )
+                change = float(target_span) - old_price
 
-                new_data = {
-                    "ID": [id],
-                    "Time": [time_now],
-                    "Product": [product_description],
-                    "Price": [target_span],
-                    "Change": [""],
-                }
-                new_df = pd.DataFrame(new_data)
+                data["ID"].append(id)
+                data["Time"].append(str(time_now))
+                data["Product"].append(product_description)
+                data["Price"].append(str(target_span))
+                data["Change"].append(str(change))
 
-                # try pandas pct_change
+                rows = []
 
-                try:
-                    for x in list(
-                        filter(
-                            lambda row: (row[1] == id).any(),
-                            list(df.values.iterrows())[::-1],
-                        )
-                    ):
-                        print(x, x[1], end="\n\n")
-                except:
-                    pass
+                for i in range(len(data["ID"])):
+                    rows.append(
+                        [
+                            data["ID"][i],
+                            data["Time"][i],
+                            data["Product"][i],
+                            data["Price"][i],
+                            data["Change"][i],
+                        ]
+                    )
 
-                df = pd.concat([df, new_df], ignore_index=True)
+                with open("table.csv", "w") as f:
+                    # Write header
+                    f.write(f"{','.join(data.keys())}\n")
 
-                df.to_csv("table.csv", index=False)
+                    # Write rows
+                    for row in rows:
+                        f.write(f"{','.join(row)}\n")
 
+            # TODO: Async task requests
             else:
                 print("No price found for", url)
 
