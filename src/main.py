@@ -26,7 +26,7 @@ while True:
 with open("urls.json", "w") as f:
     json.dump({"urls": urls}, f)
 
-print("Links added to the JSON file.")
+# print("Links added to the JSON file.")
 
 # TODO auto create json file
 
@@ -60,7 +60,6 @@ while True:
         try:
             # id
             id = url.split("-")[-1]
-            print(id)
 
             # time
             time_now = datetime.datetime.now()
@@ -89,29 +88,39 @@ while True:
             if target_span:
                 # TODO: Fix isnumeric
                 target_span = int("".join(filter(str.isdigit, target_span.text)))
-                print("Product:", product_description, "Price:", target_span)
+                # print("Product:", product_description, "Price:", target_span)
 
                 new_data = {
                     "ID": [id],
                     "Time": [time_now],
                     "Product": [product_description],
                     "Price": [target_span],
-                    "Change": [],
+                    "Change": [""],
                 }
-
-                # TODO: Get alll products with the same ID and calculate the difference
-                new_data["Change"] = df.groupby("ID")["Price"].diff()
-
                 new_df = pd.DataFrame(new_data)
 
+                # try pandas pct_change
+
+                try:
+                    for x in list(
+                        filter(
+                            lambda row: (row[1] == id).any(),
+                            list(df.values.iterrows())[::-1],
+                        )
+                    ):
+                        print(x, x[1], end="\n\n")
+                except:
+                    pass
+
                 df = pd.concat([df, new_df], ignore_index=True)
+
                 df.to_csv("table.csv", index=False)
 
             else:
                 print("No price found for", url)
 
         except requests.exceptions.RequestException as e:
-            print("Error fetcghing data for:", url, ":", e)
+            print("Error fetching data for:", url, ":", e)
 
         except (Exception, KeyboardInterrupt) as e:
             raise e
