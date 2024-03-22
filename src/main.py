@@ -10,6 +10,8 @@ import validators
 # Initialize list of URLs
 urls = []
 
+
+# TODO Add a way to add and remove links
 while True:
     link = input("Enter link (or type 'q' to quit): ")
 
@@ -25,6 +27,8 @@ with open("urls.json", "w") as f:
     json.dump({"urls": urls}, f)
 
 print("Links added to the JSON file.")
+
+# TODO auto create json file
 
 # Read JSON data
 with open("urls.json", "r") as f:
@@ -42,6 +46,7 @@ else:
         "Time": [],
         "Product": [],
         "Price": [],
+        "Change": [],
     }
 
     df = pd.DataFrame(df)
@@ -49,16 +54,16 @@ else:
     df.to_csv("table.csv", index=False)
 
 
-time_now = datetime.datetime.now()
-
-
 # Continuously fetch prices for all URLs
 while True:
     for url in urls:
         try:
-
+            # id
             id = url.split("-")[-1]
             print(id)
+
+            # time
+            time_now = datetime.datetime.now()
 
             response = requests.get(url)
             response.raise_for_status()
@@ -82,7 +87,7 @@ while True:
                     break
 
             if target_span:
-                # TODO: Fix this
+                # TODO: Fix isnumeric
                 target_span = int("".join(filter(str.isdigit, target_span.text)))
                 print("Product:", product_description, "Price:", target_span)
 
@@ -91,15 +96,17 @@ while True:
                     "Time": [time_now],
                     "Product": [product_description],
                     "Price": [target_span],
+                    "Change": [],
                 }
 
+                # TODO: Get alll products with the same ID and calculate the difference
+                new_data["Change"] = df.groupby("ID")["Price"].diff()
+
                 new_df = pd.DataFrame(new_data)
+
                 df = pd.concat([df, new_df], ignore_index=True)
                 df.to_csv("table.csv", index=False)
 
-                for i in range(len(new_data["Price"])):
-                    difference = new_data["Price"][i] - new_data["Price"][i - 1]
-                    print(difference)
             else:
                 print("No price found for", url)
 
@@ -107,6 +114,6 @@ while True:
             print("Error fetcghing data for:", url, ":", e)
 
         except (Exception, KeyboardInterrupt) as e:
-            print(e)
+            raise e
 
-    time.sleep(10)
+    time.sleep(3)
